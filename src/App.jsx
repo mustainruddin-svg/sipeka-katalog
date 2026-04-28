@@ -36,6 +36,7 @@ function formatRupiah(n) {
 function ProductModal({ product, catIcons, onClose }) {
   const [imgError, setImgError] = useState(false);
   const hasPhoto = product.foto && !imgError;
+  const habis = product.stok === "habis";
 
   useEffect(() => {
     const handleKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -73,10 +74,12 @@ function ProductModal({ product, catIcons, onClose }) {
 
         {/* Foto Produk */}
         <div
-          className="flex items-center justify-center"
+          className="relative flex items-center justify-center"
           style={{
             height: 260,
-            background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, #dff2fb 100%)`,
+            background: habis
+              ? "linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)"
+              : `linear-gradient(135deg, ${COLORS.primaryLight} 0%, #dff2fb 100%)`,
           }}
         >
           {hasPhoto ? (
@@ -85,34 +88,71 @@ function ProductModal({ product, catIcons, onClose }) {
               alt={product.nama}
               className="w-full h-full object-cover"
               onError={() => setImgError(true)}
+              style={{ filter: habis ? "grayscale(100%)" : "none" }}
             />
           ) : (
-            <span style={{ fontSize: 90 }}>{product.fallback || "📦"}</span>
+            <span style={{
+              fontSize: 90,
+              filter: habis ? "grayscale(100%)" : "none",
+              opacity: habis ? 0.5 : 1,
+            }}>
+              {product.fallback || "📦"}
+            </span>
+          )}
+
+          {/* Label HABIS di popup */}
+          {habis && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span
+                className="px-6 py-2 rounded-full text-white font-extrabold text-lg tracking-widest"
+                style={{ background: "rgba(0,0,0,0.55)", letterSpacing: "0.15em" }}
+              >
+                HABIS
+              </span>
+            </div>
           )}
         </div>
 
         {/* Info Produk */}
         <div className="p-5 space-y-3">
-          {/* Badge Kategori */}
-          <span
-            className="inline-block text-xs font-bold px-3 py-1 rounded-full"
-            style={{ background: COLORS.primaryLight, color: COLORS.primary }}
-          >
-            {catIcons[product.kategori] || "📦"} {product.kategori}
-          </span>
+          {/* Badge Kategori + Stok */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className="inline-block text-xs font-bold px-3 py-1 rounded-full"
+              style={{ background: COLORS.primaryLight, color: COLORS.primary }}
+            >
+              {catIcons[product.kategori] || "📦"} {product.kategori}
+            </span>
+            {habis && (
+              <span
+                className="inline-block text-xs font-bold px-3 py-1 rounded-full"
+                style={{ background: "#fee2e2", color: "#dc2626" }}
+              >
+                ⛔ Stok Habis
+              </span>
+            )}
+            {!habis && (
+              <span
+                className="inline-block text-xs font-bold px-3 py-1 rounded-full"
+                style={{ background: "#dcfce7", color: "#16a34a" }}
+              >
+                ✅ Tersedia
+              </span>
+            )}
+          </div>
 
           {/* Nama */}
-          <h2 className="text-xl font-extrabold leading-snug" style={{ color: COLORS.textDark }}>
+          <h2 className="text-xl font-extrabold leading-snug" style={{ color: habis ? "#9ca3af" : COLORS.textDark }}>
             {product.nama}
           </h2>
 
           {/* Harga */}
           <div
             className="flex items-center justify-between p-3 rounded-2xl"
-            style={{ background: COLORS.primaryLight }}
+            style={{ background: habis ? "#f3f4f6" : COLORS.primaryLight }}
           >
             <span className="text-sm font-semibold" style={{ color: COLORS.textMid }}>Harga</span>
-            <span className="text-2xl font-extrabold" style={{ color: COLORS.primary }}>
+            <span className="text-2xl font-extrabold" style={{ color: habis ? "#9ca3af" : COLORS.primary }}>
               {formatRupiah(parseInt(product.harga) || 0)}
             </span>
           </div>
@@ -137,15 +177,17 @@ function ProductModal({ product, catIcons, onClose }) {
 function ProductCard({ product, catIcons, onClick }) {
   const [imgError, setImgError] = useState(false);
   const hasPhoto = product.foto && !imgError;
+  const habis = product.stok === "habis";
 
   return (
     <div
       className="rounded-2xl overflow-hidden flex flex-col cursor-pointer"
       style={{
         background: COLORS.cardBg,
-        border: `1.5px solid ${COLORS.border}`,
+        border: `1.5px solid ${habis ? "#e5e7eb" : COLORS.border}`,
         boxShadow: `0 4px 20px ${COLORS.shadow}`,
         transition: "transform 0.2s, box-shadow 0.2s",
+        opacity: habis ? 0.85 : 1,
       }}
       onClick={onClick}
       onMouseEnter={e => {
@@ -160,7 +202,12 @@ function ProductCard({ product, catIcons, onClick }) {
       {/* Foto */}
       <div
         className="relative overflow-hidden flex items-center justify-center group"
-        style={{ height: 140, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, #dff2fb 100%)` }}
+        style={{
+          height: 140,
+          background: habis
+            ? "linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%)"
+            : `linear-gradient(135deg, ${COLORS.primaryLight} 0%, #dff2fb 100%)`,
+        }}
       >
         {hasPhoto ? (
           <img
@@ -168,43 +215,82 @@ function ProductCard({ product, catIcons, onClick }) {
             alt={product.nama}
             className="w-full h-full object-cover"
             onError={() => setImgError(true)}
-            style={{ transition: "transform 0.3s" }}
+            style={{
+              transition: "transform 0.3s",
+              filter: habis ? "grayscale(100%)" : "none",
+            }}
           />
         ) : (
-          <span style={{ fontSize: 52, lineHeight: 1 }}>{product.fallback || "📦"}</span>
+          <span style={{
+            fontSize: 52,
+            lineHeight: 1,
+            filter: habis ? "grayscale(100%)" : "none",
+            opacity: habis ? 0.5 : 1,
+          }}>
+            {product.fallback || "📦"}
+          </span>
         )}
 
-        {/* Badge kategori */}
-        <span
-          className="absolute top-2 left-2 text-xs font-semibold px-2 py-1 rounded-full"
-          style={{ background: COLORS.primary, color: COLORS.white }}
-        >
-          {catIcons[product.kategori] || "📦"} {product.kategori}
-        </span>
-
-        {/* Overlay hint */}
-        <div
-          className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-          style={{ background: "rgba(13,159,217,0.15)" }}
-        >
-          <div
-            className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-white"
-            style={{ background: "rgba(13,159,217,0.85)" }}
+        {/* Badge kategori — sembunyikan kalau habis */}
+        {!habis && (
+          <span
+            className="absolute top-2 left-2 text-xs font-semibold px-2 py-1 rounded-full"
+            style={{ background: COLORS.primary, color: COLORS.white }}
           >
-            <ZoomIn size={13} /> Lihat Detail
+            {catIcons[product.kategori] || "📦"} {product.kategori}
+          </span>
+        )}
+
+        {/* Label HABIS */}
+        {habis && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1"
+            style={{ background: "rgba(0,0,0,0.35)" }}>
+            <span
+              className="px-4 py-1.5 rounded-full text-white font-extrabold text-sm tracking-widest"
+              style={{ background: "rgba(0,0,0,0.6)", letterSpacing: "0.12em" }}
+            >
+              HABIS
+            </span>
           </div>
-        </div>
+        )}
+
+        {/* Overlay hint (hanya kalau ada stok) */}
+        {!habis && (
+          <div
+            className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ background: "rgba(13,159,217,0.15)" }}
+          >
+            <div
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-white"
+              style={{ background: "rgba(13,159,217,0.85)" }}
+            >
+              <ZoomIn size={13} /> Lihat Detail
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Info */}
       <div className="flex flex-col flex-1 p-3 gap-1">
-        <p className="font-bold text-sm leading-snug line-clamp-2" style={{ color: COLORS.textDark, minHeight: 36 }}>
+        <p
+          className="font-bold text-sm leading-snug line-clamp-2"
+          style={{ color: habis ? "#9ca3af" : COLORS.textDark, minHeight: 36 }}
+        >
           {product.nama}
         </p>
-        <div className="mt-auto pt-1">
-          <span className="font-extrabold text-base" style={{ color: COLORS.primary }}>
+        <div className="mt-auto pt-1 flex items-center justify-between">
+          <span
+            className="font-extrabold text-base"
+            style={{ color: habis ? "#9ca3af" : COLORS.primary }}
+          >
             {formatRupiah(parseInt(product.harga) || 0)}
           </span>
+          {habis && (
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+              style={{ background: "#fee2e2", color: "#dc2626" }}>
+              Habis
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -238,6 +324,7 @@ export default function SipekaKatalog() {
           kategori: p.kategori || "",
           foto: p.foto || "",
           fallback: p.fallback || "📦",
+          stok: p.stok || "ada",
         })).filter(p => p.nama);
 
         const kategoriData = parseCSV(kategoriCSV);
@@ -357,7 +444,10 @@ export default function SipekaKatalog() {
               </a>
             </div>
             <div className="flex gap-3 md:flex-col">
-              {[["🛍️", products.length || 0, "Produk"], ["📦", categories.length > 1 ? categories.length - 1 : 0, "Kategori"]].map(([icon, val, label]) => (
+              {[
+                ["🛍️", products.length || 0, "Produk"],
+                ["📦", categories.length > 1 ? categories.length - 1 : 0, "Kategori"],
+              ].map(([icon, val, label]) => (
                 <div key={label} className="rounded-2xl px-5 py-4 text-center" style={{ background: "rgba(255,255,255,0.15)" }}>
                   <div style={{ fontSize: 28 }}>{icon}</div>
                   <div className="text-2xl font-extrabold text-white">{val}</div>
