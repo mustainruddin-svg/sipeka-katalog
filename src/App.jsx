@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ShoppingCart, MapPin, Phone, Clock, Search, X, ShoppingBag } from "lucide-react";
 
+const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN-i7uccs5AYhQP4Q2ME4TxDoCqVRYkDxVDx34ergpsFk6PHjnAHjgQfpuqH-zG3rxoGRMhWw8oinY/pub?gid=0&single=true&output=csv";
+
 const COLORS = {
   primary: "#0D9FD9",
   primaryDark: "#0A7FAE",
@@ -15,23 +17,26 @@ const COLORS = {
   shadow: "rgba(13, 159, 217, 0.12)",
 };
 
-const products = [
-  { id: 1,  nama: "Gentel Gent",                 harga: 18000, kategori: "Minuman", foto: "", fallback: "🥛" },
-  { id: 2,  nama: "Laurier Active Day",           harga: 18000, kategori: "Minuman", foto: "", fallback: "🥛" },
-  { id: 3,  nama: "JS DOS Mineral",               harga: 19500, kategori: "Minuman", foto: "", fallback: "💧" },
-  { id: 4,  nama: "Le Minira 1L",                 harga: 7000,  kategori: "Minuman", foto: "", fallback: "💧" },
-  { id: 5,  nama: "Tepung Bumbu Serbaguna",        harga: 23000, kategori: "Makanan", foto: "", fallback: "🌾" },
-  { id: 6,  nama: "Kecap Bango",                  harga: 25000, kategori: "Makanan", foto: "", fallback: "🍯" },
-  { id: 7,  nama: "FULL CREAM Susu Kental Manis", harga: 20000, kategori: "Dairy",   foto: "", fallback: "🥛" },
-  { id: 8,  nama: "SKM Frisian Flag",             harga: 14000, kategori: "Dairy",   foto: "", fallback: "🥛" },
-  { id: 9,  nama: "Tissu Wajah Larissi",          harga: 29000, kategori: "Tissue",  foto: "", fallback: "📋" },
-  { id: 10, nama: "Tissue Gulung Premium",         harga: 32000, kategori: "Tissue",  foto: "", fallback: "🧻" },
-  { id: 11, nama: "Keripik Udang Rasa Bawang",    harga: 25000, kategori: "Snack",   foto: "", fallback: "🍤" },
-  { id: 12, nama: "Mie Instant Goreng Ayam",      harga: 3500,  kategori: "Snack",   foto: "", fallback: "🍜" },
-];
-
 const CATEGORIES = ["Semua", "Minuman", "Makanan", "Dairy", "Tissue", "Snack"];
 const CAT_ICONS = { Semua: "🛒", Minuman: "💧", Makanan: "🍽️", Dairy: "🥛", Tissue: "🧻", Snack: "🍜" };
+
+function parseCSV(text) {
+  const lines = text.trim().split("\n");
+  const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
+  return lines.slice(1).map((line, i) => {
+    const values = line.split(",").map(v => v.trim().replace(/"/g, ""));
+    const obj = {};
+    headers.forEach((h, idx) => { obj[h] = values[idx] || ""; });
+    return {
+      id: i + 1,
+      nama: obj.nama || "",
+      harga: parseInt(obj.harga) || 0,
+      kategori: obj.kategori || "",
+      foto: obj.foto || "",
+      fallback: obj.fallback || "📦",
+    };
+  }).filter(p => p.nama);
+}
 
 function formatRupiah(n) {
   return "Rp " + n.toLocaleString("id-ID");
@@ -78,7 +83,7 @@ function ProductCard({ product, onAdd, added }) {
           className="absolute top-2 left-2 text-xs font-semibold px-2 py-1 rounded-full"
           style={{ background: COLORS.primary, color: COLORS.white }}
         >
-          {CAT_ICONS[product.kategori]} {product.kategori}
+          {CAT_ICONS[product.kategori] || "📦"} {product.kategori}
         </span>
       </div>
 
@@ -108,12 +113,30 @@ function ProductCard({ product, onAdd, added }) {
 }
 
 export default function SipekaKatalog() {
+  const [products, setProducts]     = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState(null);
   const [query, setQuery]           = useState("");
   const [category, setCategory]     = useState("Semua");
   const [cartCount, setCartCount]   = useState(0);
   const [added, setAdded]           = useState({});
   const [showSearch, setShowSearch] = useState(false);
   const searchRef = useRef(null);
+
+  // Fetch data dari Google Sheet
+  useEffect(() => {
+    fetch(SHEET_CSV)
+      .then(res => res.text())
+      .then(text => {
+        const data = parseCSV(text);
+        setProducts(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Gagal memuat data produk. Periksa koneksi internet Anda.");
+        setLoading(false);
+      });
+  }, []);
 
   const filtered = products.filter(p => {
     const matchCat = category === "Semua" || p.kategori === category;
@@ -219,7 +242,7 @@ export default function SipekaKatalog() {
               </button>
             </div>
             <div className="flex gap-3 md:flex-col">
-              {[["🛍️", products.length, "Produk"], ["📦", CATEGORIES.length - 1, "Kategori"]].map(([icon, val, label]) => (
+              {[["🛍️", products.length || 0, "Produk"], ["📦", CATEGORIES.length - 1, "Kategori"]].map(([icon, val, label]) => (
                 <div key={label} className="rounded-2xl px-5 py-4 text-center" style={{ background: "rgba(255,255,255,0.15)" }}>
                   <div style={{ fontSize: 28 }}>{icon}</div>
                   <div className="text-2xl font-extrabold text-white">{val}</div>
@@ -255,43 +278,65 @@ export default function SipekaKatalog() {
 
       {/* PRODUCT GRID */}
       <main className="max-w-5xl mx-auto px-4 py-6">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm font-semibold" style={{ color: COLORS.textMid }}>
-            {query
-              ? <>Hasil "<span style={{ color: COLORS.primary }}>{query}</span>" — {filtered.length} produk</>
-              : <>{filtered.length} produk {category !== "Semua" ? `· ${category}` : "tersedia"}</>
-            }
-          </p>
-          {(query || category !== "Semua") && (
-            <button
-              onClick={() => { setQuery(""); setCategory("Semua"); setShowSearch(false); }}
-              className="text-xs font-bold px-2 py-1 rounded-lg"
-              style={{ color: COLORS.primary, background: COLORS.primaryLight }}
-            >
-              Reset
-            </button>
-          )}
-        </div>
 
-        {filtered.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filtered.map(p => (
-              <ProductCard key={p.id} product={p} onAdd={handleAdd} added={!!added[p.id]} />
-            ))}
-          </div>
-        ) : (
+        {/* Loading */}
+        {loading && (
           <div className="text-center py-20">
-            <div style={{ fontSize: 56 }}>🔍</div>
-            <p className="mt-4 text-lg font-bold" style={{ color: COLORS.textMid }}>Produk tidak ditemukan</p>
-            <p className="text-sm mt-1" style={{ color: COLORS.textLight }}>Coba kata kunci lain atau reset filter</p>
-            <button
-              onClick={() => { setQuery(""); setCategory("Semua"); setShowSearch(false); }}
-              className="mt-4 px-5 py-2 rounded-xl font-bold text-sm"
-              style={{ background: COLORS.primary, color: COLORS.white }}
-            >
-              Reset Pencarian
-            </button>
+            <div className="text-5xl animate-spin inline-block">⏳</div>
+            <p className="mt-4 font-bold" style={{ color: COLORS.textMid }}>Memuat produk...</p>
           </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="text-center py-20">
+            <div style={{ fontSize: 56 }}>⚠️</div>
+            <p className="mt-4 font-bold" style={{ color: COLORS.textMid }}>{error}</p>
+          </div>
+        )}
+
+        {/* Products */}
+        {!loading && !error && (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-semibold" style={{ color: COLORS.textMid }}>
+                {query
+                  ? <>Hasil "<span style={{ color: COLORS.primary }}>{query}</span>" — {filtered.length} produk</>
+                  : <>{filtered.length} produk {category !== "Semua" ? `· ${category}` : "tersedia"}</>
+                }
+              </p>
+              {(query || category !== "Semua") && (
+                <button
+                  onClick={() => { setQuery(""); setCategory("Semua"); setShowSearch(false); }}
+                  className="text-xs font-bold px-2 py-1 rounded-lg"
+                  style={{ color: COLORS.primary, background: COLORS.primaryLight }}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            {filtered.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filtered.map(p => (
+                  <ProductCard key={p.id} product={p} onAdd={handleAdd} added={!!added[p.id]} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-20">
+                <div style={{ fontSize: 56 }}>🔍</div>
+                <p className="mt-4 text-lg font-bold" style={{ color: COLORS.textMid }}>Produk tidak ditemukan</p>
+                <p className="text-sm mt-1" style={{ color: COLORS.textLight }}>Coba kata kunci lain atau reset filter</p>
+                <button
+                  onClick={() => { setQuery(""); setCategory("Semua"); setShowSearch(false); }}
+                  className="mt-4 px-5 py-2 rounded-xl font-bold text-sm"
+                  style={{ background: COLORS.primary, color: COLORS.white }}
+                >
+                  Reset Pencarian
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
 
