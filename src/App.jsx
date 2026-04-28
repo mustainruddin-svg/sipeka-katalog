@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ShoppingCart, MapPin, Phone, Clock, Search, X, ShoppingBag } from "lucide-react";
+import { MapPin, Phone, Clock, Search, X, ShoppingBag } from "lucide-react";
 
-const SHEET_PRODUK = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN-i7uccs5AYhQP4Q2ME4TxDoCqVRYkDxVDx34ergpsFk6PHjnAHjgQfpuqH-zG3rxoGRMhWw8oinY/pub?gid=0&single=true&output=csv";
-const SHEET_KATEGORI = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN-i7uccs5AYhQP4Q2ME4TxDoCqVRYkDxVDx34ergpsFk6PHjnAHjgQfpuqH-zG3rxoGRMhWw8oinY/pub?gid=8050395&single=true&output=csv";
+const SHEET_PRODUK = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTN-i7uccs5AYhQP4Q2ME4TxDoCqVRYkDxVDx34ergpsFk6PHjnAHjgQfpuqH-zG3rxoGRMhWw8oinY/pub?gid=0&single=true&output=csv&t=${Date.now()}`;
+const SHEET_KATEGORI = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTN-i7uccs5AYhQP4Q2ME4TxDoCqVRYkDxVDx34ergpsFk6PHjnAHjgQfpuqH-zG3rxoGRMhWw8oinY/pub?gid=8050395&single=true&output=csv&t=${Date.now()}`;
 
 const COLORS = {
   primary: "#0D9FD9",
@@ -21,7 +21,7 @@ const COLORS = {
 function parseCSV(text) {
   const lines = text.trim().split("\n");
   const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
-  return lines.slice(1).map((line, i) => {
+  return lines.slice(1).map((line) => {
     const values = line.split(",").map(v => v.trim().replace(/"/g, ""));
     const obj = {};
     headers.forEach((h, idx) => { obj[h] = values[idx] || ""; });
@@ -33,7 +33,7 @@ function formatRupiah(n) {
   return "Rp " + n.toLocaleString("id-ID");
 }
 
-function ProductCard({ product, catIcons, onAdd, added }) {
+function ProductCard({ product, catIcons }) {
   const [imgError, setImgError] = useState(false);
   const hasPhoto = product.foto && !imgError;
 
@@ -55,6 +55,7 @@ function ProductCard({ product, catIcons, onAdd, added }) {
         e.currentTarget.style.boxShadow = `0 4px 20px ${COLORS.shadow}`;
       }}
     >
+      {/* Foto Produk */}
       <div
         className="relative overflow-hidden flex items-center justify-center"
         style={{ height: 140, background: `linear-gradient(135deg, ${COLORS.primaryLight} 0%, #dff2fb 100%)` }}
@@ -66,10 +67,13 @@ function ProductCard({ product, catIcons, onAdd, added }) {
             className="w-full h-full object-cover"
             onError={() => setImgError(true)}
             style={{ transition: "transform 0.3s" }}
+            onMouseEnter={e => (e.target.style.transform = "scale(1.06)")}
+            onMouseLeave={e => (e.target.style.transform = "scale(1)")}
           />
         ) : (
           <span style={{ fontSize: 52, lineHeight: 1 }}>{product.fallback || "📦"}</span>
         )}
+        {/* Badge Kategori */}
         <span
           className="absolute top-2 left-2 text-xs font-semibold px-2 py-1 rounded-full"
           style={{ background: COLORS.primary, color: COLORS.white }}
@@ -78,25 +82,15 @@ function ProductCard({ product, catIcons, onAdd, added }) {
         </span>
       </div>
 
+      {/* Info Produk */}
       <div className="flex flex-col flex-1 p-3 gap-2">
         <p className="font-bold text-sm leading-snug line-clamp-2" style={{ color: COLORS.textDark, minHeight: 36 }}>
           {product.nama}
         </p>
-        <div className="flex items-center justify-between mt-auto">
+        <div className="mt-auto">
           <span className="font-extrabold text-base" style={{ color: COLORS.primary }}>
             {formatRupiah(parseInt(product.harga) || 0)}
           </span>
-          <button
-            onClick={() => onAdd(product.id)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
-            style={{
-              background: added ? "#22c55e" : COLORS.primary,
-              color: COLORS.white,
-              transform: added ? "scale(0.95)" : "scale(1)",
-            }}
-          >
-            {added ? "✓ Ditambah" : "+ Tambah"}
-          </button>
         </div>
       </div>
     </div>
@@ -111,19 +105,17 @@ export default function SipekaKatalog() {
   const [error, setError]           = useState(null);
   const [query, setQuery]           = useState("");
   const [category, setCategory]     = useState("Semua");
-  const [cartCount, setCartCount]   = useState(0);
-  const [added, setAdded]           = useState({});
   const [showSearch, setShowSearch] = useState(false);
   const searchRef = useRef(null);
 
-  // Fetch produk & kategori sekaligus
+  // Fetch data dari Google Sheet (dengan cache buster)
   useEffect(() => {
+    const ts = Date.now();
     Promise.all([
-      fetch(SHEET_PRODUK).then(r => r.text()),
-      fetch(SHEET_KATEGORI).then(r => r.text()),
+      fetch(`https://docs.google.com/spreadsheets/d/e/2PACX-1vTN-i7uccs5AYhQP4Q2ME4TxDoCqVRYkDxVDx34ergpsFk6PHjnAHjgQfpuqH-zG3rxoGRMhWw8oinY/pub?gid=0&single=true&output=csv&t=${ts}`).then(r => r.text()),
+      fetch(`https://docs.google.com/spreadsheets/d/e/2PACX-1vTN-i7uccs5AYhQP4Q2ME4TxDoCqVRYkDxVDx34ergpsFk6PHjnAHjgQfpuqH-zG3rxoGRMhWw8oinY/pub?gid=8050395&single=true&output=csv&t=${ts}`).then(r => r.text()),
     ])
       .then(([produkCSV, kategoriCSV]) => {
-        // Parse produk
         const produkData = parseCSV(produkCSV).map((p, i) => ({
           id: i + 1,
           nama: p.nama || "",
@@ -133,11 +125,9 @@ export default function SipekaKatalog() {
           fallback: p.fallback || "📦",
         })).filter(p => p.nama);
 
-        // Parse kategori
         const kategoriData = parseCSV(kategoriCSV);
         const icons = {};
         kategoriData.forEach(k => { if (k.nama) icons[k.nama] = k.icon || "📦"; });
-
         const catList = ["Semua", ...kategoriData.map(k => k.nama).filter(Boolean)];
 
         setProducts(produkData);
@@ -158,20 +148,17 @@ export default function SipekaKatalog() {
     return matchCat && matchQ;
   });
 
-  const handleAdd = id => {
-    setCartCount(c => c + 1);
-    setAdded(a => ({ ...a, [id]: true }));
-    setTimeout(() => setAdded(a => ({ ...a, [id]: false })), 1500);
-  };
-
   useEffect(() => {
     if (showSearch && searchRef.current) searchRef.current.focus();
   }, [showSearch]);
 
+  const waNumber = "6282343836303";
+  const waLink = `https://wa.me/${waNumber}?text=Halo%20SiPEKA%2C%20saya%20ingin%20memesan%20produk`;
+
   return (
     <div style={{ background: COLORS.offWhite, minHeight: "100vh" }}>
 
-      {/* HEADER */}
+      {/* ── HEADER ── */}
       <header className="sticky top-0 z-50" style={{ background: COLORS.white, borderBottom: `1px solid ${COLORS.border}`, boxShadow: `0 2px 16px ${COLORS.shadow}` }}>
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <div className="flex items-center justify-center rounded-xl w-10 h-10 shrink-0" style={{ background: COLORS.primary }}>
@@ -181,6 +168,8 @@ export default function SipekaKatalog() {
             <h1 className="text-xl font-extrabold leading-none tracking-wide" style={{ color: COLORS.primary }}>SiPEKA</h1>
             <p className="text-xs" style={{ color: COLORS.textLight }}>Mini Market Yayasan Ar-Rahmah</p>
           </div>
+
+          {/* Tombol Cari */}
           <button
             onClick={() => { setShowSearch(s => !s); if (showSearch) setQuery(""); }}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-semibold transition-all"
@@ -189,19 +178,23 @@ export default function SipekaKatalog() {
             {showSearch ? <X size={16} /> : <Search size={16} />}
             <span className="hidden sm:inline">{showSearch ? "Tutup" : "Cari"}</span>
           </button>
-          <div
-            className="relative flex items-center justify-center w-10 h-10 rounded-xl cursor-pointer"
-            style={{ background: COLORS.primaryLight }}
-            onClick={() => alert(`Keranjang: ${cartCount} item`)}
+
+          {/* Tombol WhatsApp */}
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center w-10 h-10 rounded-xl"
+            style={{ background: "#25D366" }}
+            title="Pesan via WhatsApp"
           >
-            <ShoppingCart size={20} style={{ color: COLORS.primary }} />
-            {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center" style={{ background: "#ef4444", color: "#fff" }}>
-                {cartCount}
-              </span>
-            )}
-          </div>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+          </a>
         </div>
+
+        {/* Search Bar */}
         <div style={{ maxHeight: showSearch ? 72 : 0, overflow: "hidden", transition: "max-height 0.3s ease", borderTop: showSearch ? `1px solid ${COLORS.border}` : "none" }}>
           <div className="max-w-5xl mx-auto px-4 py-3">
             <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: COLORS.primaryLight, border: `1.5px solid ${COLORS.border}` }}>
@@ -221,7 +214,7 @@ export default function SipekaKatalog() {
         </div>
       </header>
 
-      {/* HERO */}
+      {/* ── HERO ── */}
       <section style={{ background: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.primaryDark} 100%)`, padding: "40px 16px 48px" }}>
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center gap-8">
@@ -247,12 +240,15 @@ export default function SipekaKatalog() {
                   </div>
                 ))}
               </div>
-              <button
-                className="mt-2 px-6 py-2.5 rounded-xl font-bold text-sm"
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block mt-2 px-6 py-2.5 rounded-xl font-bold text-sm"
                 style={{ background: COLORS.white, color: COLORS.primary }}
               >
                 📲 Hubungi via WhatsApp
-              </button>
+              </a>
             </div>
             <div className="flex gap-3 md:flex-col">
               {[["🛍️", products.length || 0, "Produk"], ["📦", categories.length > 1 ? categories.length - 1 : 0, "Kategori"]].map(([icon, val, label]) => (
@@ -267,7 +263,7 @@ export default function SipekaKatalog() {
         </div>
       </section>
 
-      {/* CATEGORY TABS */}
+      {/* ── CATEGORY TABS ── */}
       <div className="sticky z-40" style={{ top: 64, background: COLORS.white, borderBottom: `1px solid ${COLORS.border}`, boxShadow: `0 2px 8px ${COLORS.shadow}` }}>
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex gap-1 overflow-x-auto py-3 scrollbar-hide">
@@ -289,7 +285,7 @@ export default function SipekaKatalog() {
         </div>
       </div>
 
-      {/* PRODUCT GRID */}
+      {/* ── PRODUCT GRID ── */}
       <main className="max-w-5xl mx-auto px-4 py-6">
         {loading && (
           <div className="text-center py-20">
@@ -325,7 +321,7 @@ export default function SipekaKatalog() {
             {filtered.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {filtered.map(p => (
-                  <ProductCard key={p.id} product={p} catIcons={catIcons} onAdd={handleAdd} added={!!added[p.id]} />
+                  <ProductCard key={p.id} product={p} catIcons={catIcons} />
                 ))}
               </div>
             ) : (
@@ -346,7 +342,21 @@ export default function SipekaKatalog() {
         )}
       </main>
 
-      {/* FOOTER */}
+      {/* ── FLOATING WA BUTTON ── */}
+      <a
+        href={waLink}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-6 right-6 flex items-center gap-2 px-4 py-3 rounded-2xl font-bold text-sm text-white shadow-lg z-50"
+        style={{ background: "#25D366", boxShadow: "0 4px 20px rgba(37,211,102,0.4)" }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        Pesan via WA
+      </a>
+
+      {/* ── FOOTER ── */}
       <footer className="mt-8" style={{ background: COLORS.textDark, borderTop: `3px solid ${COLORS.primary}` }}>
         <div className="max-w-5xl mx-auto px-4 py-8 grid md:grid-cols-3 gap-6">
           <div>
