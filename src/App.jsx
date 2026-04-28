@@ -238,8 +238,8 @@ export default function SipekaKatalog() {
               </p>
               <div className="space-y-2 pt-2">
                 {[
-                  [<MapPin size={15} />, "Jl. Pendidikan No. 45, Makassar, Sulsel"],
-                  [<Phone size={15} />, "+62 812-3456-7890"],
+                  [<MapPin size={15} />, "Jl. Pajjaiang No. 39, Berua, Biringkanaya, Makassar, Sulsel"],
+                  [<Phone size={15} />, "+62 823-4383-6303"],
                   [<Clock size={15} />, "Senin – Sabtu, 08.00 – 17.00"],
                 ].map(([icon, text], i) => (
                   <div key={i} className="flex items-center gap-2 text-sm" style={{ color: "rgba(255,255,255,0.88)" }}>
@@ -356,9 +356,9 @@ export default function SipekaKatalog() {
           <div>
             <h4 className="font-bold mb-3 text-sm" style={{ color: COLORS.primary }}>Kontak</h4>
             <ul className="space-y-1 text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
-              <li>📞 +62 812-3456-7890</li>
+              <li>📞 +62 823-4383-6303</li>
               <li>📧 sipeka@ar-rahmah.id</li>
-              <li>📍 Makassar, Sulawesi Selatan</li>
+              <li>📍 Jl. Pajjaiang No. 39 Kel. Berua, Kec. Biringkanaya, Makassar, Sulawesi Selatan</li>
             </ul>
           </div>
           <div>
