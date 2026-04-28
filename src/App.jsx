@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ShoppingCart, MapPin, Phone, Clock, Search, X, ShoppingBag } from "lucide-react";
 
-const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN-i7uccs5AYhQP4Q2ME4TxDoCqVRYkDxVDx34ergpsFk6PHjnAHjgQfpuqH-zG3rxoGRMhWw8oinY/pub?gid=0&single=true&output=csv";
+const SHEET_PRODUK = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN-i7uccs5AYhQP4Q2ME4TxDoCqVRYkDxVDx34ergpsFk6PHjnAHjgQfpuqH-zG3rxoGRMhWw8oinY/pub?gid=0&single=true&output=csv";
+const SHEET_KATEGORI = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTN-i7uccs5AYhQP4Q2ME4TxDoCqVRYkDxVDx34ergpsFk6PHjnAHjgQfpuqH-zG3rxoGRMhWw8oinY/pub?gid=8050395&single=true&output=csv";
 
 const COLORS = {
   primary: "#0D9FD9",
@@ -17,9 +18,6 @@ const COLORS = {
   shadow: "rgba(13, 159, 217, 0.12)",
 };
 
-const CATEGORIES = ["Semua", "Minuman", "Makanan", "Dairy", "Tissue", "Snack"];
-const CAT_ICONS = { Semua: "🛒", Minuman: "💧", Makanan: "🍽️", Dairy: "🥛", Tissue: "🧻", Snack: "🍜" };
-
 function parseCSV(text) {
   const lines = text.trim().split("\n");
   const headers = lines[0].split(",").map(h => h.trim().replace(/"/g, ""));
@@ -27,22 +25,15 @@ function parseCSV(text) {
     const values = line.split(",").map(v => v.trim().replace(/"/g, ""));
     const obj = {};
     headers.forEach((h, idx) => { obj[h] = values[idx] || ""; });
-    return {
-      id: i + 1,
-      nama: obj.nama || "",
-      harga: parseInt(obj.harga) || 0,
-      kategori: obj.kategori || "",
-      foto: obj.foto || "",
-      fallback: obj.fallback || "📦",
-    };
-  }).filter(p => p.nama);
+    return obj;
+  }).filter(o => Object.values(o).some(v => v));
 }
 
 function formatRupiah(n) {
   return "Rp " + n.toLocaleString("id-ID");
 }
 
-function ProductCard({ product, onAdd, added }) {
+function ProductCard({ product, catIcons, onAdd, added }) {
   const [imgError, setImgError] = useState(false);
   const hasPhoto = product.foto && !imgError;
 
@@ -77,13 +68,13 @@ function ProductCard({ product, onAdd, added }) {
             style={{ transition: "transform 0.3s" }}
           />
         ) : (
-          <span style={{ fontSize: 52, lineHeight: 1 }}>{product.fallback}</span>
+          <span style={{ fontSize: 52, lineHeight: 1 }}>{product.fallback || "📦"}</span>
         )}
         <span
           className="absolute top-2 left-2 text-xs font-semibold px-2 py-1 rounded-full"
           style={{ background: COLORS.primary, color: COLORS.white }}
         >
-          {CAT_ICONS[product.kategori] || "📦"} {product.kategori}
+          {catIcons[product.kategori] || "📦"} {product.kategori}
         </span>
       </div>
 
@@ -93,7 +84,7 @@ function ProductCard({ product, onAdd, added }) {
         </p>
         <div className="flex items-center justify-between mt-auto">
           <span className="font-extrabold text-base" style={{ color: COLORS.primary }}>
-            {formatRupiah(product.harga)}
+            {formatRupiah(parseInt(product.harga) || 0)}
           </span>
           <button
             onClick={() => onAdd(product.id)}
@@ -114,6 +105,8 @@ function ProductCard({ product, onAdd, added }) {
 
 export default function SipekaKatalog() {
   const [products, setProducts]     = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [catIcons, setCatIcons]     = useState({});
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
   const [query, setQuery]           = useState("");
@@ -123,17 +116,37 @@ export default function SipekaKatalog() {
   const [showSearch, setShowSearch] = useState(false);
   const searchRef = useRef(null);
 
-  // Fetch data dari Google Sheet
+  // Fetch produk & kategori sekaligus
   useEffect(() => {
-    fetch(SHEET_CSV)
-      .then(res => res.text())
-      .then(text => {
-        const data = parseCSV(text);
-        setProducts(data);
+    Promise.all([
+      fetch(SHEET_PRODUK).then(r => r.text()),
+      fetch(SHEET_KATEGORI).then(r => r.text()),
+    ])
+      .then(([produkCSV, kategoriCSV]) => {
+        // Parse produk
+        const produkData = parseCSV(produkCSV).map((p, i) => ({
+          id: i + 1,
+          nama: p.nama || "",
+          harga: parseInt(p.harga) || 0,
+          kategori: p.kategori || "",
+          foto: p.foto || "",
+          fallback: p.fallback || "📦",
+        })).filter(p => p.nama);
+
+        // Parse kategori
+        const kategoriData = parseCSV(kategoriCSV);
+        const icons = {};
+        kategoriData.forEach(k => { if (k.nama) icons[k.nama] = k.icon || "📦"; });
+
+        const catList = ["Semua", ...kategoriData.map(k => k.nama).filter(Boolean)];
+
+        setProducts(produkData);
+        setCategories(catList);
+        setCatIcons({ Semua: "🛒", ...icons });
         setLoading(false);
       })
       .catch(() => {
-        setError("Gagal memuat data produk. Periksa koneksi internet Anda.");
+        setError("Gagal memuat data. Periksa koneksi internet Anda.");
         setLoading(false);
       });
   }, []);
@@ -242,7 +255,7 @@ export default function SipekaKatalog() {
               </button>
             </div>
             <div className="flex gap-3 md:flex-col">
-              {[["🛍️", products.length || 0, "Produk"], ["📦", CATEGORIES.length - 1, "Kategori"]].map(([icon, val, label]) => (
+              {[["🛍️", products.length || 0, "Produk"], ["📦", categories.length > 1 ? categories.length - 1 : 0, "Kategori"]].map(([icon, val, label]) => (
                 <div key={label} className="rounded-2xl px-5 py-4 text-center" style={{ background: "rgba(255,255,255,0.15)" }}>
                   <div style={{ fontSize: 28 }}>{icon}</div>
                   <div className="text-2xl font-extrabold text-white">{val}</div>
@@ -258,7 +271,7 @@ export default function SipekaKatalog() {
       <div className="sticky z-40" style={{ top: 64, background: COLORS.white, borderBottom: `1px solid ${COLORS.border}`, boxShadow: `0 2px 8px ${COLORS.shadow}` }}>
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex gap-1 overflow-x-auto py-3 scrollbar-hide">
-            {CATEGORIES.map(cat => (
+            {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setCategory(cat)}
@@ -269,7 +282,7 @@ export default function SipekaKatalog() {
                   border: `1.5px solid ${category === cat ? COLORS.primary : COLORS.border}`,
                 }}
               >
-                <span>{CAT_ICONS[cat]}</span> {cat}
+                <span>{catIcons[cat] || "📦"}</span> {cat}
               </button>
             ))}
           </div>
@@ -278,24 +291,18 @@ export default function SipekaKatalog() {
 
       {/* PRODUCT GRID */}
       <main className="max-w-5xl mx-auto px-4 py-6">
-
-        {/* Loading */}
         {loading && (
           <div className="text-center py-20">
             <div className="text-5xl animate-spin inline-block">⏳</div>
             <p className="mt-4 font-bold" style={{ color: COLORS.textMid }}>Memuat produk...</p>
           </div>
         )}
-
-        {/* Error */}
         {error && (
           <div className="text-center py-20">
             <div style={{ fontSize: 56 }}>⚠️</div>
             <p className="mt-4 font-bold" style={{ color: COLORS.textMid }}>{error}</p>
           </div>
         )}
-
-        {/* Products */}
         {!loading && !error && (
           <>
             <div className="flex items-center justify-between mb-4">
@@ -315,11 +322,10 @@ export default function SipekaKatalog() {
                 </button>
               )}
             </div>
-
             {filtered.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 {filtered.map(p => (
-                  <ProductCard key={p.id} product={p} onAdd={handleAdd} added={!!added[p.id]} />
+                  <ProductCard key={p.id} product={p} catIcons={catIcons} onAdd={handleAdd} added={!!added[p.id]} />
                 ))}
               </div>
             ) : (
