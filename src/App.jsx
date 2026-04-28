@@ -198,4 +198,130 @@ export default function SipekaKatalog() {
                 <span style={{ color: "#BEE9FA" }}>Harga Bersahabat</span>
               </h2>
               <p style={{ color: "rgba(255,255,255,0.82)", fontSize: 15 }}>
-                Kebutuhan sehari-hari lengkap tersedia di Mini Market Ya
+                Kebutuhan sehari-hari lengkap tersedia di Mini Market Yayasan Ar-Rahmah Sulawesi.
+              </p>
+              <div className="space-y-2 pt-2">
+                {[
+                  [<MapPin size={15} />, "Jl. Pendidikan No. 45, Makassar, Sulsel"],
+                  [<Phone size={15} />, "+62 812-3456-7890"],
+                  [<Clock size={15} />, "Senin – Sabtu, 08.00 – 17.00"],
+                ].map(([icon, text], i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm" style={{ color: "rgba(255,255,255,0.88)" }}>
+                    <span style={{ color: "#BEE9FA" }}>{icon}</span> {text}
+                  </div>
+                ))}
+              </div>
+              <button
+                className="mt-2 px-6 py-2.5 rounded-xl font-bold text-sm"
+                style={{ background: COLORS.white, color: COLORS.primary }}
+              >
+                📲 Hubungi via WhatsApp
+              </button>
+            </div>
+            <div className="flex gap-3 md:flex-col">
+              {[["🛍️", products.length, "Produk"], ["📦", CATEGORIES.length - 1, "Kategori"]].map(([icon, val, label]) => (
+                <div key={label} className="rounded-2xl px-5 py-4 text-center" style={{ background: "rgba(255,255,255,0.15)" }}>
+                  <div style={{ fontSize: 28 }}>{icon}</div>
+                  <div className="text-2xl font-extrabold text-white">{val}</div>
+                  <div className="text-xs" style={{ color: "#BEE9FA" }}>{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CATEGORY TABS */}
+      <div className="sticky z-40" style={{ top: 64, background: COLORS.white, borderBottom: `1px solid ${COLORS.border}`, boxShadow: `0 2px 8px ${COLORS.shadow}` }}>
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="flex gap-1 overflow-x-auto py-3 scrollbar-hide">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategory(cat)}
+                className="flex items-center gap-1.5 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-bold transition-all shrink-0"
+                style={{
+                  background: category === cat ? COLORS.primary : COLORS.primaryLight,
+                  color: category === cat ? COLORS.white : COLORS.primary,
+                  border: `1.5px solid ${category === cat ? COLORS.primary : COLORS.border}`,
+                }}
+              >
+                <span>{CAT_ICONS[cat]}</span> {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* PRODUCT GRID */}
+      <main className="max-w-5xl mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm font-semibold" style={{ color: COLORS.textMid }}>
+            {query
+              ? <>Hasil "<span style={{ color: COLORS.primary }}>{query}</span>" — {filtered.length} produk</>
+              : <>{filtered.length} produk {category !== "Semua" ? `· ${category}` : "tersedia"}</>
+            }
+          </p>
+          {(query || category !== "Semua") && (
+            <button
+              onClick={() => { setQuery(""); setCategory("Semua"); setShowSearch(false); }}
+              className="text-xs font-bold px-2 py-1 rounded-lg"
+              style={{ color: COLORS.primary, background: COLORS.primaryLight }}
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filtered.map(p => (
+              <ProductCard key={p.id} product={p} onAdd={handleAdd} added={!!added[p.id]} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-20">
+            <div style={{ fontSize: 56 }}>🔍</div>
+            <p className="mt-4 text-lg font-bold" style={{ color: COLORS.textMid }}>Produk tidak ditemukan</p>
+            <p className="text-sm mt-1" style={{ color: COLORS.textLight }}>Coba kata kunci lain atau reset filter</p>
+            <button
+              onClick={() => { setQuery(""); setCategory("Semua"); setShowSearch(false); }}
+              className="mt-4 px-5 py-2 rounded-xl font-bold text-sm"
+              style={{ background: COLORS.primary, color: COLORS.white }}
+            >
+              Reset Pencarian
+            </button>
+          </div>
+        )}
+      </main>
+
+      {/* FOOTER */}
+      <footer className="mt-8" style={{ background: COLORS.textDark, borderTop: `3px solid ${COLORS.primary}` }}>
+        <div className="max-w-5xl mx-auto px-4 py-8 grid md:grid-cols-3 gap-6">
+          <div>
+            <h3 className="font-extrabold text-lg mb-1" style={{ color: COLORS.primary }}>SiPEKA</h3>
+            <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>Mini Market Yayasan Ar-Rahmah Sulawesi — Melayani dengan sepenuh hati.</p>
+          </div>
+          <div>
+            <h4 className="font-bold mb-3 text-sm" style={{ color: COLORS.primary }}>Kontak</h4>
+            <ul className="space-y-1 text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
+              <li>📞 +62 812-3456-7890</li>
+              <li>📧 sipeka@ar-rahmah.id</li>
+              <li>📍 Makassar, Sulawesi Selatan</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-bold mb-3 text-sm" style={{ color: COLORS.primary }}>Ikuti Kami</h4>
+            <div className="flex gap-3 text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
+              <span className="cursor-pointer hover:text-white">📘 Facebook</span>
+              <span className="cursor-pointer hover:text-white">📷 Instagram</span>
+            </div>
+          </div>
+        </div>
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+          <p className="text-center py-3 text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>© 2024 SiPEKA — Yayasan Ar-Rahmah Sulawesi</p>
+        </div>
+      </footer>
+    </div>
+  );
+}
